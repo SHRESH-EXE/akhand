@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Quality Awareness Dashboard | CHE110 Environmental Studies</title>
+    <meta name="description" content="Student environmental studies dashboard evaluating ambient air pollution, 3D geospatial distribution, and air quality awareness in India.">
+    <!-- Google Font: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Plotly.js for 2D comparison, trend and survey charts -->
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <!-- Deck.gl and MapLibre GL for 3D India Geospatial ColumnLayer -->
+    <script src="https://unpkg.com/deck.gl@latest/dist.min.js"></script>
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Three.js for Topic-Related 3D Atmospheric Scroll Background -->
+    <script src="three.min.js"></script>
+    <link rel="stylesheet" href="style.css?v=glassmorphism2">
+</head>
+<body>
+
+    <!-- Topic-Related 3D Atmospheric Scroll Background Canvas -->
+    <canvas id="ambient3dBg" class="ambient-3d-bg"></canvas>
+
+    <!-- Sticky Navigation Jump Bar -->
+    <nav class="top-nav-bar">
+        <div class="nav-inner">
+            <a href="#top" class="nav-brand">CHE110 Environmental Studies</a>
+            <div class="nav-links">
+                <a href="#section-city" class="nav-link">City AQI & Health</a>
+                <a href="#section-pollutants" class="nav-link">Pollutants</a>
+                <a href="#section-map" class="nav-link">3D India Map</a>
+                <a href="#section-compare" class="nav-link">City Comparison</a>
+                <a href="#section-trend" class="nav-link">7-Day Trend</a>
+                <a href="#section-survey" class="nav-link">Survey Results</a>
+                <a href="#section-reality" class="nav-link">Awareness vs Reality</a>
+                <a href="#section-sources" class="nav-link">Sources & About</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 1. Full-Width 16:9 Presentation Main Content Flow -->
+    <main class="dashboard-container" id="top">
+
+        <!-- 1. Header Section -->
+        <header class="dashboard-header">
+            <div class="course-tag">CHE110 Environmental Studies Project</div>
+            <h1 class="main-title">Air Quality Awareness Dashboard</h1>
+            <p class="sub-title">Ambient air quality monitoring and environmental awareness across India.</p>
+        </header>
+
+        <!-- Notification Boxes (Loading & Fallback) -->
+        <div id="liveLoading" class="notice-box notice-info" style="display: none;">
+            Connecting to Open-Meteo Air Quality API to retrieve current observations...
+        </div>
+        <div id="liveError" class="notice-box notice-warning" style="display: none;">
+            <span id="liveErrorMessage">Live data temporarily unavailable. Displaying local baseline observations.</span>
+        </div>
+
+        <!-- 2. Selected City, Current AQI & Health Guidance (2-Column Desktop Layout) -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-city">
+            <div class="controls-bar">
+                <div class="controls-left">
+                    <label for="citySelect" class="selector-label">Select City for Observation:</label>
+                    <select id="citySelect" class="city-select">
+                        <option value="Delhi">Delhi</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Bengaluru">Bengaluru</option>
+                        <option value="Chennai">Chennai</option>
+                        <option value="Kolkata">Kolkata</option>
+                        <option value="Hyderabad">Hyderabad</option>
+                        <option value="Pune">Pune</option>
+                        <option value="Ahmedabad">Ahmedabad</option>
+                        <option value="Lucknow">Lucknow</option>
+                        <option value="Chandigarh">Chandigarh</option>
+                    </select>
+                    <button id="btnRefresh" class="btn-primary">Refresh Data</button>
+                </div>
+                <div class="source-note">Data source: Open-Meteo Air Quality API</div>
+            </div>
+
+            <!-- Two-Column Hero Grid: AQI Score on Left, Health Guidance Summary on Right -->
+            <div class="aqi-summary-grid">
+                <div class="aqi-card">
+                    <div>
+                        <div class="aqi-hero-top">
+                            <span class="city-headline" id="cityTag">Delhi</span>
+                            <span class="timestamp-text" id="timeTag">Updating...</span>
+                        </div>
+                        <div class="aqi-display-row">
+                            <div class="aqi-large-number" id="aqiNumber">--</div>
+                            <div>
+                                <div class="aqi-scale-label">Current US AQI</div>
+                                <div style="font-size: 14px; color: var(--text-muted); margin-top: 2px;">Scale: 0 - 500</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <span id="aqiBadge" class="aqi-badge" style="background-color: #64748b;">Loading status...</span>
+                    </div>
+                </div>
+
+                <div class="health-card">
+                    <div>
+                        <div class="card-heading">Educational Health Guidance</div>
+                        <div class="advice-body" id="adviceText">
+                            Loading educational guidance for the selected city...
+                        </div>
+                    </div>
+                    <div>
+                        <div class="outdoor-tip">
+                            <strong style="color: var(--text-primary);">Activity tip:</strong> <span id="outdoorTipText" style="color: var(--text-secondary); margin-left: 4px;">Please check back once data loads.</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. Pollutants Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-pollutants">
+            <div class="section-header-row">
+                <h2 class="section-title">Current Measured Pollutants &bull; <span id="pollutantsCityName">Delhi</span></h2>
+            </div>
+            
+            <div class="pollutants-grid">
+                <div class="pollutant-card">
+                    <div class="pollutant-label">PM2.5</div>
+                    <div class="pollutant-val" id="valPM25">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Fine particles (&le; 2.5 µm)</div>
+                </div>
+                <div class="pollutant-card">
+                    <div class="pollutant-label">PM10</div>
+                    <div class="pollutant-val" id="valPM10">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Coarse dust (&le; 10 µm)</div>
+                </div>
+                <div class="pollutant-card">
+                    <div class="pollutant-label">NO₂</div>
+                    <div class="pollutant-val" id="valNO2">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Nitrogen Dioxide</div>
+                </div>
+                <div class="pollutant-card">
+                    <div class="pollutant-label">SO₂</div>
+                    <div class="pollutant-val" id="valSO2">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Sulphur Dioxide</div>
+                </div>
+                <div class="pollutant-card">
+                    <div class="pollutant-label">Ozone (O₃)</div>
+                    <div class="pollutant-val" id="valO3">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Ground Ozone</div>
+                </div>
+                <div class="pollutant-card">
+                    <div class="pollutant-label">CO</div>
+                    <div class="pollutant-val" id="valCO">-- <span class="pollutant-unit">µg/m³</span></div>
+                    <div class="pollutant-desc">Carbon Monoxide</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. 3D India Map Section (Main Visual Focus) -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-map">
+            <div class="section-header-row">
+                <h2 class="section-title">3D India Air Quality Map</h2>
+            </div>
+
+            <div class="map-container">
+                <div id="deckMap"></div>
+            </div>
+
+            <div class="map-legend-bar">
+                <div class="legend-items">
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-good);"></span> Good (0-50)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-moderate);"></span> Moderate (51-100)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-sensitive);"></span> Sensitive (101-150)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-unhealthy);"></span> Unhealthy (151-200)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-very-unhealthy);"></span> Very Unhealthy (201-300)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-hazardous);"></span> Hazardous (301+)</span>
+                </div>
+            </div>
+
+            <!-- Clean Accordion Multi-City Table -->
+            <details class="table-toggle">
+                <summary>View All Monitored Cities Data Table</summary>
+                <div class="data-table-wrapper" style="margin-top: 0; border: none;">
+                    <table class="clean-table">
+                        <thead>
+                            <tr>
+                                <th>City</th>
+                                <th>Region</th>
+                                <th>Current US AQI</th>
+                                <th>Category</th>
+                                <th>PM2.5 (µg/m³)</th>
+                                <th>PM10 (µg/m³)</th>
+                                <th>Coordinates</th>
+                            </tr>
+                        </thead>
+                        <tbody id="allCitiesTableBody">
+                            <tr><td colspan="7" style="text-align:center; padding: 14px;">Loading multi-city observations...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+
+        <!-- 5. 2D City Comparison Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-compare">
+            <div class="section-header-row">
+                <h2 class="section-title">Current AQI Comparison Across Selected Indian Cities</h2>
+            </div>
+
+            <div class="chart-container-full">
+                <div id="plotlyCityCompare" style="width: 100%; min-height: 520px;"></div>
+            </div>
+        </section>
+
+        <!-- 6. 7-Day Trend Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-trend">
+            <div class="section-header-row">
+                <h2 class="section-title">7-Day AQI Trend &bull; <span id="trendCityName">Delhi</span></h2>
+            </div>
+
+            <div class="chart-container-full">
+                <div id="plotly7DayTrend" style="width: 100%; min-height: 500px;"></div>
+            </div>
+        </section>
+
+        <!-- 7. Survey Results Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-survey">
+            <div class="section-header-row" style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <h2 class="section-title">Student Air Quality Awareness Survey</h2>
+                </div>
+                <div>
+                    <button id="btnDownloadCSV" class="btn-secondary">Download survey_responses.csv</button>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 14px; font-size: 15px; color: var(--text-secondary);">
+                <span>Dataset: </span>
+                <strong id="surveyTotalCount" style="font-size: 18px; color: var(--accent); font-weight: 800;">--</strong>
+            </div>
+
+            <div id="surveyChartsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+                <!-- Dynamically populated Plotly charts for each survey question -->
+            </div>
+        </section>
+
+        <!-- 8. Awareness vs Reality Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-reality">
+            <div class="section-header-row">
+                <h2 class="section-title">Awareness vs Reality</h2>
+            </div>
+
+            <div class="two-col-grid">
+                <div class="panel-box" style="border-left: 4px solid var(--accent);">
+                    <div class="card-heading">Survey Findings</div>
+
+                    <div class="stat-item">
+                        <div class="stat-number" id="statRarelyNever" style="color: var(--aqi-unhealthy);">68.0%</div>
+                        <div class="stat-desc">Rarely or never check air quality</div>
+                    </div>
+
+                    <div class="stat-item">
+                        <div class="stat-number" id="statUsedApp" style="color: var(--accent);">30.0%</div>
+                        <div class="stat-desc">Have used an AQI app or website</div>
+                    </div>
+
+                    <div class="stat-item" style="margin-bottom: 0;">
+                        <div class="stat-number" id="statDashboardHelps" style="color: var(--aqi-good);">84.0%</div>
+                        <div class="stat-desc">Say an actionable dashboard helps check AQI</div>
+                    </div>
+                </div>
+
+                <div class="panel-box" style="border-left: 4px solid var(--accent);">
+                    <div class="card-heading">Observed Reality</div>
+
+                    <div class="stat-item">
+                        <div style="font-size: 22px; font-weight: 800; color: var(--text-primary);" id="realityCityHeader">
+                            Delhi: <span id="realityAqiText" style="color: var(--accent);">-- US AQI</span>
+                        </div>
+                        <div class="stat-desc" style="margin-top: 4px;">
+                            PM2.5: <strong id="realityPM25" style="color: var(--text-primary);">--</strong> µg/m³ &bull; PM10: <strong id="realityPM10" style="color: var(--text-primary);">--</strong> µg/m³
+                        </div>
+                    </div>
+
+                    <div class="stat-item" style="margin-bottom: 0;">
+                        <strong style="color: var(--text-primary); font-size: 16px;">The Awareness Gap:</strong>
+                        <div class="stat-desc" style="line-height: 1.5; margin-top: 4px;">
+                            Over two-thirds of surveyed students rarely track air quality despite frequent elevated pollution levels in urban centres.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 9. Sources & Citations Section -->
+        <hr class="section-divider">
+        <section class="dashboard-section" id="section-sources">
+            <div class="section-header-row">
+                <h2 class="section-title">Sources and About</h2>
+            </div>
+
+            <!-- Project Details & Citations Grid (2-Column Desktop Layout) -->
+            <div class="two-col-grid">
+                <div class="panel-box">
+                    <div class="card-heading">CHE110 Environmental Studies</div>
+                    <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
+                        <strong style="color: var(--text-primary);">Project:</strong> Air Quality Awareness Dashboard<br>
+                        <strong style="color: var(--text-primary);">Focus:</strong> Ambient air pollution analysis & student awareness
+                    </p>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
+                        <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Team Members:</div>
+                        <ul style="padding-left: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 0;">
+                            <li>[Student Name Placeholder] &bull; Roll: [Placeholder]</li>
+                            <li>[Team Member 2 Placeholder] &bull; Roll: [Placeholder]</li>
+                            <li>[Team Member 3 Placeholder] &bull; Roll: [Placeholder]</li>
+                        </ul>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
+                        <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Institution:</div>
+                        <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
+                            Department of Environmental Science & Engineering<br>
+                            [University / Institution Name Placeholder]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="card-heading">Scientific References</div>
+                    <ol class="citations-list" style="margin-bottom: 0;">
+                        <li>
+                            <strong style="color: var(--text-primary);">Open-Meteo Air Quality API</strong><br>
+                            <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank">open-meteo.com/en/docs/air-quality-api</a>
+                        </li>
+                        <li>
+                            <strong style="color: var(--text-primary);">Central Pollution Control Board (CPCB)</strong><br>
+                            <a href="https://cpcb.nic.in" target="_blank">cpcb.nic.in</a>
+                        </li>
+                        <li>
+                            <strong style="color: var(--text-primary);">World Health Organization (WHO)</strong><br>
+                            <a href="https://www.who.int" target="_blank">who.int</a>
+                        </li>
+                        <li>
+                            <strong style="color: var(--text-primary);">US EPA Air Quality Index Standards</strong>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Required Academic Footer -->
+    <footer class="dashboard-footer">
+        Data source: Open-Meteo Air Quality API | CHE110 Environmental Studies
+    </footer>
+
+    <!-- Core Application Logic -->
+    <script src="script.js?v=glassmorphism2"></script>
+</body>
+</html>

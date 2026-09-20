@@ -1,0 +1,894 @@
+/* ==========================================================================
+   Air Quality Awareness Dashboard - Clean Student Environmental Project Theme
+   Course: CHE110 Environmental Studies
+   ========================================================================== */
+
+/* Design Tokens - Minimalist Glassmorphism */
+:root {
+    --bg-page: #EEF3F2;
+    --bg-card: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
+    --bg-card-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0.38) 100%);
+    --bg-subtle: rgba(255, 255, 255, 0.35);
+    --bg-glass-subtle: rgba(255, 255, 255, 0.28);
+    
+    --text-primary: #1F2933;
+    --text-secondary: #4B5563;
+    --text-muted: #6B7280;
+    
+    --border-color: rgba(255, 255, 255, 0.60);
+    --border-dark: rgba(203, 213, 209, 0.70);
+    --glass-border: rgba(255, 255, 255, 0.65);
+    --glass-border-light: rgba(255, 255, 255, 0.95);
+    --glass-border-subtle: rgba(255, 255, 255, 0.45);
+    
+    --accent: #0F5C5C;
+    --accent-hover: #0C4A4A;
+    --accent-light: rgba(15, 92, 92, 0.10);
+    
+    /* Strict AQI Meaning Colors (Reserved for AQI data) */
+    --aqi-good: #16a34a;
+    --aqi-moderate: #d97706;
+    --aqi-sensitive: #ea580c;
+    --aqi-unhealthy: #dc2626;
+    --aqi-very-unhealthy: #9333ea;
+    --aqi-hazardous: #881337;
+    
+    --radius: 16px;
+    --shadow: 0 10px 30px 0 rgba(15, 92, 92, 0.05), inset 0 1px 1px 0 rgba(255, 255, 255, 0.9);
+    --glass-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08), 0 1px 2px 0 rgba(0, 0, 0, 0.02), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 2px 0 rgba(0, 0, 0, 0.02);
+    --glass-shadow-hover: 0 16px 44px 0 rgba(15, 92, 92, 0.14), 0 2px 4px 0 rgba(0, 0, 0, 0.03), inset 0 1.5px 1px 0 #FFFFFF, inset 0 -1px 2px 0 rgba(0, 0, 0, 0.03);
+    
+    --glass-backdrop: blur(16px) saturate(185%);
+    --font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Reset & Global Base */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    position: relative;
+    font-family: var(--font-family);
+    background-color: var(--bg-page);
+    background-image: 
+        radial-gradient(circle at 10% 12%, rgba(15, 118, 110, 0.18) 0%, transparent 36%),
+        radial-gradient(circle at 90% 18%, rgba(2, 132, 199, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 28% 48%, rgba(22, 163, 74, 0.14) 0%, transparent 38%),
+        radial-gradient(circle at 85% 68%, rgba(217, 119, 6, 0.15) 0%, transparent 42%),
+        radial-gradient(circle at 16% 86%, rgba(147, 51, 234, 0.12) 0%, transparent 36%),
+        radial-gradient(circle at 50% 98%, rgba(15, 118, 110, 0.16) 0%, transparent 40%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    line-height: 1.55;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+}
+
+/* Topic-Related 3D Atmospheric Scroll Background Canvas */
+.ambient-3d-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 1.0;
+}
+
+/* Top Sticky Navigation Bar with Minimalist Frosted Glass */
+.top-nav-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.48) 100%);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border-bottom: 1.5px solid rgba(255, 255, 255, 0.85);
+    box-shadow: 0 4px 24px 0 rgba(15, 92, 92, 0.05);
+}
+
+.nav-inner {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 52px;
+}
+
+.nav-brand {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--accent);
+    text-decoration: none;
+    letter-spacing: 0.01em;
+}
+
+.nav-links {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+.nav-link {
+    font-size: 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-link:hover {
+    color: var(--accent);
+    background-color: var(--accent-light);
+}
+
+/* 1. Full-Width 16:9 Presentation Main Container */
+.dashboard-container {
+    position: relative;
+    z-index: 1;
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 24px 2.5rem 48px 2.5rem;
+}
+
+@media (max-width: 768px) {
+    .nav-inner {
+        padding: 0 1rem;
+    }
+    .dashboard-container {
+        padding: 16px 1rem 32px 1rem;
+    }
+}
+
+/* Header Section */
+.dashboard-header {
+    margin-bottom: 16px;
+}
+
+.course-tag {
+    display: inline-block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    background: rgba(15, 92, 92, 0.08);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(15, 92, 92, 0.15);
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+}
+
+.main-title {
+    font-size: 38px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+    margin-bottom: 6px;
+}
+
+.sub-title {
+    font-size: 17px;
+    color: var(--text-secondary);
+    max-width: 800px;
+    line-height: 1.5;
+}
+
+/* Clean Horizontal Section Separation */
+.section-divider {
+    margin: 32px 0 24px 0;
+    border: none;
+    border-top: 1px solid rgba(220, 232, 230, 0.55);
+}
+
+/* Section Header Typography */
+.dashboard-section {
+    margin-bottom: 6px;
+}
+
+.section-header-row {
+    margin-bottom: 14px;
+}
+
+.section-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.section-subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* 2. City Selector & Controls */
+.controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.controls-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.selector-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.city-select {
+    font-family: var(--font-family);
+    font-size: 15px;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    min-width: 220px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.city-select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: rgba(255, 255, 255, 0.90);
+}
+
+.btn-primary {
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    color: #FFFFFF;
+    background-color: var(--accent);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(15, 92, 92, 0.22);
+    transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(15, 92, 92, 0.30);
+}
+
+.btn-secondary {
+    font-family: var(--font-family);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.70);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.90);
+    border-color: var(--accent);
+}
+
+.source-note {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+/* Status Notifications - Frosted Glass */
+.notice-box {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.notice-info {
+    background: rgba(239, 246, 255, 0.70);
+    border: 1px solid rgba(191, 219, 254, 0.65);
+    color: #1e40af;
+}
+
+.notice-warning {
+    background: rgba(255, 251, 235, 0.70);
+    border: 1px solid rgba(253, 230, 138, 0.65);
+    color: #92400e;
+}
+
+/* 3. Cards Strictly for Current AQI, Health Guidance & Pollutants - Unmistakable Glassmorphism */
+.aqi-summary-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1.9fr;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+.aqi-card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    transition: box-shadow 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+
+.aqi-card:hover {
+    box-shadow: var(--glass-shadow-hover);
+    background: var(--bg-card-hover);
+    border-top: 1.5px solid #FFFFFF;
+    border-left: 1.5px solid #FFFFFF;
+    transform: translateY(-2px);
+}
+
+.aqi-hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+}
+
+.city-headline {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.timestamp-text {
+    font-size: 14px;
+    color: var(--text-muted);
+}
+
+.aqi-display-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin: 8px 0 14px 0;
+}
+
+.aqi-large-number {
+    font-size: 58px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--text-primary);
+}
+
+.aqi-scale-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.aqi-badge {
+    display: inline-block;
+    padding: 7px 16px;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+
+.health-card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 4.5px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+    box-shadow: var(--glass-shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+    transition: box-shadow 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+
+.health-card:hover {
+    box-shadow: var(--glass-shadow-hover);
+    background: var(--bg-card-hover);
+    border-top: 1.5px solid #FFFFFF;
+    transform: translateY(-2px);
+}
+
+.card-heading {
+    font-size: 21px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+
+.advice-body {
+    font-size: 16px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+
+.outdoor-tip {
+    font-size: 15px;
+    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.22) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.70);
+    border-top: 1.5px solid #FFFFFF;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+/* Pollutants Section Cards (6 Columns on desktop) - Glassmorphism */
+.pollutants-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 14px;
+    margin-top: 8px;
+}
+
+.pollutant-card {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    box-shadow: var(--glass-shadow);
+    height: 100%;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.pollutant-card:hover {
+    transform: translateY(-3px);
+    background: var(--bg-card-hover);
+    box-shadow: var(--glass-shadow-hover);
+    border-top: 1.5px solid #FFFFFF;
+    border-left: 1.5px solid #FFFFFF;
+}
+
+.pollutant-label {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.pollutant-val {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.15;
+}
+
+.pollutant-unit {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    margin-left: 3px;
+}
+
+.pollutant-desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+    line-height: 1.35;
+}
+
+/* Clean Accordion for Table - Glassmorphism */
+.table-toggle {
+    margin-top: 14px;
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    box-shadow: var(--glass-shadow);
+    overflow: hidden;
+}
+
+.table-toggle summary {
+    padding: 12px 18px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    user-select: none;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.25) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    transition: background 0.15s ease;
+}
+
+.table-toggle summary:hover {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.80) 0%, rgba(255, 255, 255, 0.50) 100%);
+}
+
+/* 4. 3D India Map (Large Visual Focus ~600px Height) */
+.map-container {
+    position: relative;
+    width: 100%;
+    height: 600px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background-color: #1e293b;
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    box-shadow: var(--glass-shadow);
+}
+
+#deckMap {
+    width: 100%;
+    height: 100%;
+}
+
+.map-legend-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px 16px;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0.35) 100%);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    box-shadow: var(--glass-shadow);
+}
+
+.legend-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.legend-chip {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.60) 0%, rgba(255, 255, 255, 0.30) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.70);
+    border-radius: 8px;
+    padding: 5px 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.chip-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+}
+
+/* Clean Fallback Multi-City Table */
+.data-table-wrapper {
+    overflow-x: auto;
+    background: transparent;
+}
+
+.clean-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    text-align: left;
+}
+
+.clean-table th {
+    background: rgba(255, 255, 255, 0.40);
+    color: var(--text-primary);
+    font-weight: 600;
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(220, 232, 230, 0.50);
+}
+
+.clean-table td {
+    padding: 11px 16px;
+    border-bottom: 1px solid rgba(220, 232, 230, 0.50);
+    color: var(--text-secondary);
+}
+
+.clean-table tr:last-child td {
+    border-bottom: none;
+}
+
+.clean-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.50);
+}
+
+/* 5 & 6. Chart Containers - Minimalist Glassmorphism */
+.chart-container-full {
+    width: 100%;
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    box-shadow: var(--glass-shadow);
+}
+
+.chart-note {
+    font-size: 15px;
+    color: var(--text-secondary);
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-left: 4.5px solid var(--accent);
+    border-top: 1.5px solid var(--glass-border-light);
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-top: 14px;
+    line-height: 1.5;
+}
+
+/* 7, 8, 9. Two-Column Layouts for Desktop */
+.two-col-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+.panel-box {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--glass-shadow);
+    height: 100%;
+    transition: box-shadow 0.25s ease, background 0.25s ease, transform 0.25s ease;
+}
+
+.panel-box:hover {
+    box-shadow: var(--glass-shadow-hover);
+    background: var(--bg-card-hover);
+    border-top: 1.5px solid #FFFFFF;
+    border-left: 1.5px solid #FFFFFF;
+    transform: translateY(-2px);
+}
+
+.stat-item {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.28) 100%);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.70);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+}
+
+.stat-number {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--text-primary);
+}
+
+.stat-desc {
+    font-size: 15px;
+    color: var(--text-secondary);
+    margin-top: 3px;
+}
+
+/* Educational Scale Grid */
+.scale-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    margin: 14px 0 16px 0;
+}
+
+.scale-card {
+    border-radius: 10px;
+    padding: 14px 10px;
+    text-align: center;
+    color: #FFFFFF;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.40);
+    border-top: 1.5px solid rgba(255, 255, 255, 0.75);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+}
+
+.scale-range {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.scale-cat {
+    font-size: 14px;
+    font-weight: 600;
+    margin: 4px 0;
+}
+
+.scale-desc {
+    font-size: 14px;
+    line-height: 1.3;
+    opacity: 0.95;
+}
+
+/* Pollutants Explainer Grid */
+.pollutants-explainer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+}
+
+.explainer-box {
+    background: var(--bg-card);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+    border: 1px solid var(--glass-border);
+    border-top: 1.5px solid var(--glass-border-light);
+    border-left: 1.5px solid var(--glass-border-light);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    box-shadow: var(--glass-shadow);
+}
+
+.explainer-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.explainer-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Citations & Sources List */
+.citations-list {
+    padding-left: 20px;
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.citations-list li {
+    margin-bottom: 12px;
+}
+
+.citations-list a {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+/* Footer */
+.dashboard-footer {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+    padding: 24px 20px 18px 20px;
+    margin-top: 32px;
+    border-top: 1.5px solid rgba(255, 255, 255, 0.90);
+    font-size: 14px;
+    color: var(--text-secondary);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, rgba(255, 255, 255, 0.65) 100%);
+    backdrop-filter: var(--glass-backdrop);
+    -webkit-backdrop-filter: var(--glass-backdrop);
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 960px) {
+    .pollutants-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .aqi-summary-grid {
+        grid-template-columns: 1fr;
+    }
+    .two-col-grid {
+        grid-template-columns: 1fr;
+    }
+    .scale-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .pollutants-explainer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .main-title {
+        font-size: 28px;
+    }
+    .section-title {
+        font-size: 21px;
+    }
+    .aqi-large-number {
+        font-size: 42px;
+    }
+    .pollutant-val {
+        font-size: 22px;
+    }
+    .controls-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .city-select {
+        width: 100%;
+    }
+    .pollutants-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .scale-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .map-container {
+        height: 420px;
+    }
+}

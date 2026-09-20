@@ -1,0 +1,51 @@
+Response_ID,How frequently do you check air quality?,Have you used an AQI app or website?,Would a dashboard with health tips help you check AQI?,Which air pollutant are you most concerned about?,Primary health symptom experienced during high pollution
+R001,Rarely,No,Yes,PM2.5,Eye irritation or stinging
+R002,Never,No,Yes,PM2.5,Throat scratchiness or coughing
+R003,Occasionally,Yes,Yes,PM10,Throat scratchiness or coughing
+R004,Rarely,No,Maybe,PM2.5,Headache or fatigue
+R005,Never,No,Yes,PM2.5,Eye irritation or stinging
+R006,Daily,Yes,Yes,PM2.5,None / Not noticeable
+R007,Rarely,Yes,Yes,NO2,Throat scratchiness or coughing
+R008,Never,No,Yes,PM2.5,Eye irritation or stinging
+R009,Occasionally,No,Maybe,PM10,None / Not noticeable
+R010,Rarely,No,Yes,PM2.5,Shortness of breath
+R011,Never,No,Yes,PM2.5,Throat scratchiness or coughing
+R012,Occasionally,Yes,Yes,PM2.5,Eye irritation or stinging
+R013,Rarely,No,Yes,NO2,Eye irritation or stinging
+R014,Daily,Yes,Yes,PM2.5,Throat scratchiness or coughing
+R015,Never,No,Maybe,PM10,Headache or fatigue
+R016,Rarely,No,Yes,PM2.5,Throat scratchiness or coughing
+R017,Occasionally,Yes,Yes,PM2.5,Eye irritation or stinging
+R018,Never,No,Yes,PM2.5,Eye irritation or stinging
+R019,Rarely,No,Yes,PM10,Shortness of breath
+R020,Occasionally,No,Yes,PM2.5,None / Not noticeable
+R021,Never,No,Yes,PM2.5,Throat scratchiness or coughing
+R022,Rarely,Yes,Yes,PM2.5,Eye irritation or stinging
+R023,Daily,Yes,Yes,PM2.5,None / Not noticeable
+R024,Never,No,Maybe,NO2,Eye irritation or stinging
+R025,Rarely,No,Yes,PM2.5,Throat scratchiness or coughing
+R026,Occasionally,Yes,Yes,PM10,Throat scratchiness or coughing
+R027,Never,No,Yes,PM2.5,Eye irritation or stinging
+R028,Rarely,No,Yes,PM2.5,Headache or fatigue
+R029,Never,No,No,PM10,None / Not noticeable
+R030,Occasionally,Yes,Yes,PM2.5,Throat scratchiness or coughing
+R031,Rarely,No,Yes,PM2.5,Eye irritation or stinging
+R032,Never,No,Yes,PM2.5,Eye irritation or stinging
+R033,Daily,Yes,Yes,PM2.5,None / Not noticeable
+R034,Rarely,No,Maybe,NO2,Throat scratchiness or coughing
+R035,Never,No,Yes,PM2.5,Shortness of breath
+R036,Occasionally,Yes,Yes,PM10,Eye irritation or stinging
+R037,Rarely,No,Yes,PM2.5,Throat scratchiness or coughing
+R038,Never,No,Yes,PM2.5,Eye irritation or stinging
+R039,Occasionally,No,Yes,PM2.5,Headache or fatigue
+R040,Rarely,Yes,Yes,PM2.5,None / Not noticeable
+R041,Never,No,Yes,PM10,Throat scratchiness or coughing
+R042,Daily,Yes,Yes,PM2.5,Eye irritation or stinging
+R043,Rarely,No,Maybe,PM2.5,Throat scratchiness or coughing
+R044,Never,No,Yes,NO2,Eye irritation or stinging
+R045,Occasionally,Yes,Yes,PM2.5,None / Not noticeable
+R046,Rarely,No,Yes,PM2.5,Eye irritation or stinging
+R047,Never,No,Yes,PM2.5,Throat scratchiness or coughing
+R048,Occasionally,No,Yes,PM10,Shortness of breath
+R049,Rarely,No,Yes,PM2.5,Eye irritation or stinging
+R050,Never,No,Maybe,PM2.5,None / Not noticeable
