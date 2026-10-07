@@ -31,53 +31,39 @@ st.set_page_config(
 # ==============================================================================
 st.markdown("""
 <style>
-    /* Full-width 16:9 layout & base palette */
+    /* Premium Dark Theme Glassmorphism for Streamlit */
     .stApp {
-        background-color: #EEF3F2;
+        background-color: #05050A;
         background-image: 
-            radial-gradient(circle at 10% 12%, rgba(15, 118, 110, 0.18) 0%, transparent 36%),
-            radial-gradient(circle at 90% 18%, rgba(2, 132, 199, 0.18) 0%, transparent 40%),
-            radial-gradient(circle at 28% 48%, rgba(22, 163, 74, 0.14) 0%, transparent 38%),
-            radial-gradient(circle at 85% 68%, rgba(217, 119, 6, 0.15) 0%, transparent 42%),
-            radial-gradient(circle at 16% 86%, rgba(147, 51, 234, 0.12) 0%, transparent 36%),
-            radial-gradient(circle at 50% 98%, rgba(15, 118, 110, 0.16) 0%, transparent 40%);
+            radial-gradient(circle at 15% 50%, rgba(0, 240, 255, 0.04) 0%, transparent 50%),
+            radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.05) 0%, transparent 50%),
+            radial-gradient(circle at 50% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%);
         background-attachment: fixed;
-        color: #1F2933;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        color: #F8FAFC;
+        font-family: 'Inter', system-ui, sans-serif;
     }
     
-    /* Remove narrow default Streamlit page margins */
     .main .block-container {
         max-width: 100% !important;
-        padding-top: 1.5rem !important;
-        padding-bottom: 2.5rem !important;
-        padding-left: 2.5rem !important;
-        padding-right: 2.5rem !important;
+        padding-top: 2rem !important;
+        padding-bottom: 3rem !important;
+        padding-left: 3rem !important;
+        padding-right: 3rem !important;
     }
     
-    @media (max-width: 768px) {
-        .main .block-container {
-            padding-left: 1rem !important;
-            padding-right: 1rem !important;
-            padding-top: 1rem !important;
-        }
-    }
-    
-    /* Clear horizontal section divider */
     .section-divider {
         margin: 32px 0 28px 0;
         border: none;
-        border-top: 1px solid #DCE8E6;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
     
-    /* Typography hierarchy (Never smaller than 14px) */
     .header-badge {
         display: inline-block;
         font-size: 14px;
         font-weight: 600;
-        color: #0F5C5C;
-        background: rgba(15, 92, 92, 0.08);
-        border: 1px solid rgba(15, 92, 92, 0.15);
+        color: #00F0FF;
+        background: rgba(0, 240, 255, 0.1);
+        border: 1px solid rgba(0, 240, 255, 0.2);
         padding: 5px 14px;
         border-radius: 20px;
         margin-bottom: 10px;
@@ -85,24 +71,28 @@ st.markdown("""
     }
     
     .dashboard-title {
-        font-size: 38px;
+        font-size: 42px;
         font-weight: 800;
-        color: #1F2933;
+        color: #F8FAFC;
+        background: linear-gradient(to right, #FFFFFF, #94A3B8);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
         line-height: 1.25;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
     }
     
     .dashboard-subtitle {
-        font-size: 16px;
-        color: #4B5563;
+        font-size: 17px;
+        color: #00F0FF;
         line-height: 1.55;
         margin-bottom: 0;
+        font-weight: 500;
     }
     
     .section-title {
         font-size: 26px;
         font-weight: 700;
-        color: #1F2933;
+        color: #F8FAFC;
         margin-top: 0;
         margin-bottom: 4px;
         line-height: 1.3;
@@ -110,22 +100,22 @@ st.markdown("""
     
     .section-caption {
         font-size: 15px;
-        color: #4B5563;
+        color: #94A3B8;
         margin-bottom: 14px;
         line-height: 1.5;
     }
     
-    /* Clean Glassmorphic Cards: strictly for Current AQI, Health Guidance & Pollutant metrics */
-    .aqi-card {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
-        backdrop-filter: blur(16px) saturate(185%);
-        -webkit-backdrop-filter: blur(16px) saturate(185%);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-left: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-radius: 16px;
+    .aqi-card, .health-card, .pollutant-card, .legend-box, .info-panel {
+        background: rgba(17, 24, 39, 0.6);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid rgba(255, 255, 255, 0.15);
+        border-left: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 20px;
         padding: 24px 26px;
-        box-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -133,205 +123,163 @@ st.markdown("""
     }
     
     .health-card {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
-        backdrop-filter: blur(16px) saturate(185%);
-        -webkit-backdrop-filter: blur(16px) saturate(185%);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-left: 4.5px solid #0F5C5C;
-        border-radius: 16px;
-        padding: 24px 26px;
-        box-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        border-left: 4px solid #00F0FF;
+    }
+    
+    .aqi-card:hover, .health-card:hover, .pollutant-card:hover, .info-panel:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 48px 0 rgba(0, 240, 255, 0.15);
+        border-top: 1px solid rgba(255, 255, 255, 0.25);
+        border-left: 1px solid rgba(255, 255, 255, 0.25);
     }
     
     .aqi-number {
-        font-size: 58px;
+        font-size: 64px;
         font-weight: 800;
         line-height: 1.1;
         margin: 6px 0;
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.15);
     }
     
     .category-badge {
         display: inline-block;
-        padding: 7px 16px;
-        border-radius: 6px;
-        font-size: 16px;
+        padding: 8px 20px;
+        border-radius: 30px;
+        font-size: 15px;
         font-weight: 700;
         margin: 6px 0;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 1px;
     }
     
     .pollutant-card {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
-        backdrop-filter: blur(16px) saturate(185%);
-        -webkit-backdrop-filter: blur(16px) saturate(185%);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-left: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-radius: 16px;
-        padding: 18px 20px;
-        box-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
-        height: 100%;
+        padding: 20px;
     }
     
     .pollutant-label {
         font-size: 16px;
-        font-weight: 700;
-        color: #1F2933;
-        margin-bottom: 4px;
+        font-weight: 600;
+        color: #94A3B8;
+        margin-bottom: 8px;
     }
     
     .pollutant-value {
-        font-size: 28px;
+        font-size: 32px;
         font-weight: 800;
-        color: #1F2933;
+        color: #F8FAFC;
         line-height: 1.2;
     }
     
     .pollutant-unit {
         font-size: 14px;
         font-weight: 400;
-        color: #4B5563;
-        margin-left: 3px;
+        color: #64748B;
+        margin-left: 4px;
     }
     
     .pollutant-desc {
-        font-size: 14px;
-        color: #4B5563;
+        font-size: 13px;
+        color: #64748B;
         margin-top: 4px;
         line-height: 1.35;
     }
     
-    /* Simple rectangular buttons */
     .stButton > button {
-        font-size: 14px !important;
+        font-size: 15px !important;
         font-weight: 600 !important;
-        border-radius: 8px !important;
-        background-color: #0F5C5C !important;
-        color: #FFFFFF !important;
-        border: 1px solid rgba(255, 255, 255, 0.25) !important;
-        box-shadow: 0 4px 14px rgba(15, 92, 92, 0.22) !important;
-        padding: 0.5rem 1.2rem !important;
-        transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+        border-radius: 12px !important;
+        background-color: #00F0FF !important;
+        color: #000000 !important;
+        border: none !important;
+        box-shadow: 0 0 15px rgba(0, 240, 255, 0.3) !important;
+        padding: 0.6rem 1.5rem !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
+    
     .stButton > button:hover {
-        background-color: #0c4a4a !important;
-        transform: translateY(-1px) !important;
-        box-shadow: 0 6px 18px rgba(15, 92, 92, 0.30) !important;
-        color: #FFFFFF !important;
+        background-color: #00D1DF !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 0 25px rgba(0, 240, 255, 0.5) !important;
     }
     
     .stSelectbox label {
         font-size: 15px !important;
         font-weight: 600 !important;
-        color: #1F2933 !important;
+        color: #F8FAFC !important;
     }
     
-    /* Legend styling */
     .legend-box {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
-        backdrop-filter: blur(16px) saturate(185%);
-        -webkit-backdrop-filter: blur(16px) saturate(185%);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-radius: 16px;
-        padding: 14px 18px;
-        box-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08);
-        margin-top: 10px;
-        margin-bottom: 16px;
+        padding: 16px 24px;
+        margin-top: 16px;
+        margin-bottom: 24px;
     }
+    
     .legend-row {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 12px;
     }
+    
     .legend-pill {
         display: inline-flex;
         align-items: center;
         font-size: 14px;
         font-weight: 500;
-        color: #1F2933;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.25) 100%);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border: 1px solid rgba(255, 255, 255, 0.70);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-radius: 8px;
-        padding: 4px 10px;
+        color: #E2E8F0;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        padding: 6px 14px;
     }
+    
     .legend-dot {
         width: 12px;
         height: 12px;
-        border-radius: 3px;
+        border-radius: 50%;
         margin-right: 8px;
         display: inline-block;
     }
     
-    /* Information boxes for Survey & Reality */
-    .info-panel {
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.54) 0%, rgba(255, 255, 255, 0.22) 100%);
-        backdrop-filter: blur(16px) saturate(185%);
-        -webkit-backdrop-filter: blur(16px) saturate(185%);
-        border: 1px solid rgba(255, 255, 255, 0.65);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-left: 1.5px solid rgba(255, 255, 255, 0.95);
-        border-radius: 16px;
-        padding: 20px 22px;
-        box-shadow: 0 10px 32px 0 rgba(15, 92, 92, 0.08), inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95);
-        height: 100%;
-    }
-    
     .stat-row {
         margin-bottom: 12px;
-        background: linear-gradient(135deg, rgba(255, 255, 255, 0.50) 0%, rgba(255, 255, 255, 0.20) 100%);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.70);
-        border-top: 1.5px solid rgba(255, 255, 255, 0.95);
-        padding: 12px 14px;
-        border-radius: 10px;
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        padding: 16px;
+        border-radius: 16px;
+        transition: transform 0.3s;
+    }
+    
+    .stat-row:hover {
+        transform: scale(1.02);
     }
     
     .stat-number {
-        font-size: 32px;
+        font-size: 36px;
         font-weight: 800;
         line-height: 1.15;
     }
     
     .stat-text {
         font-size: 15px;
-        color: #4B5563;
-        margin-top: 3px;
+        color: #94A3B8;
+        margin-top: 4px;
     }
     
-    /* Footer */
     .dashboard-footer {
         text-align: center;
-        padding: 24px 0 12px 0;
-        margin-top: 32px;
-        border-top: 1px solid #DCE8E6;
+        padding: 30px 0 20px 0;
+        margin-top: 40px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
         font-size: 14px;
-        color: #4B5563;
+        color: #64748B;
     }
     
-    /* Responsive text adjustments */
     @media (max-width: 768px) {
-        .dashboard-title {
-            font-size: 28px;
-        }
-        .section-title {
-            font-size: 21px;
-        }
-        .aqi-number {
-            font-size: 42px;
-        }
-        .pollutant-value {
-            font-size: 22px;
-        }
+        .dashboard-title { font-size: 32px; }
+        .section-title { font-size: 22px; }
+        .aqi-number { font-size: 48px; }
+        .pollutant-value { font-size: 26px; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -553,7 +501,6 @@ def fetch_all_cities_data():
 # ==============================================================================
 st.markdown("""
 <div>
-    <span class="header-badge">CHE110 Environmental Studies Project</span>
     <h1 class="dashboard-title">Air Quality Awareness Dashboard</h1>
     <p class="dashboard-subtitle">
         Ambient air quality monitoring and environmental awareness across India.
@@ -636,15 +583,9 @@ with col_health_display:
             <div class="section-title" style="font-size: 20px; margin-bottom: 8px;">
                 Educational Health Guidance
             </div>
-            <p style="font-size: 16px; color: #1F2933; line-height: 1.6; margin-bottom: 14px;">
+            <p style="font-size: 16px; color: #1F2933; line-height: 1.6; margin-bottom: 0;">
                 {aqi_info['advice']}
             </p>
-        </div>
-        <div>
-            <div style="background-color: #F7F8F6; border: 1px solid #DCE8E6; border-radius: 6px; padding: 10px 14px;">
-                <strong style="font-size: 15px; color: #1F2933;">Outdoor Activity Tip:</strong>
-                <span style="font-size: 15px; color: #4B5563; margin-left: 6px;">{aqi_info['outdoor_tip']}</span>
-            </div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -848,6 +789,7 @@ def build_2d_comparison_chart(df_data):
         x=df_sorted["aqi"],
         y=df_sorted["city"],
         orientation="h",
+        width=0.45,
         marker=dict(
             color=df_sorted["color_hex"],
             line=dict(width=1, color="#DCE8E6")
@@ -1046,7 +988,7 @@ if os.path.exists(survey_file):
         st.write("")
         
         # Two-column layout for survey questions
-        question_cols = [c for c in df_survey.columns if c.lower() not in ["response_id", "id", "timestamp"]]
+        question_cols = [c for c in df_survey.columns if c.lower() not in ["response_id", "id", "timestamp"] and not any(ex in c.lower() for ex in ["dashboard", "health tips", "pollutant", "concerned"])]
         for i in range(0, len(question_cols), 2):
             q_cols = st.columns(2)
             for j in range(2):
@@ -1065,7 +1007,8 @@ if os.path.exists(survey_file):
                             title=q_name
                         )
                         fig_q.update_traces(
-                            marker_color="#0F5C5C",
+                            marker_color="#F97316",
+                            width=0.35,
                             textposition="outside",
                             textfont=dict(color="#1F2933", size=15)
                         )
@@ -1075,8 +1018,9 @@ if os.path.exists(survey_file):
                             margin=dict(l=20, r=20, t=45, b=30),
                             font=dict(family="Inter, sans-serif", color="#1F2933", size=15),
                             title=dict(font=dict(size=16, color="#1F2933")),
-                            xaxis=dict(tickangle=-15, gridcolor="#E5E7EB", tickfont=dict(color="#1F2933", size=14)),
+                            xaxis=dict(tickangle=0, gridcolor="#E5E7EB", tickfont=dict(color="#1F2933", size=14)),
                             yaxis=dict(gridcolor="#E5E7EB", tickfont=dict(color="#1F2933", size=14)),
+                            bargap=0.55,
                             height=340
                         )
                         st.plotly_chart(fig_q, use_container_width=True)
@@ -1193,67 +1137,34 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-col_cred1, col_cred2 = st.columns([1.3, 1.7])
-
-with col_cred1:
-    st.markdown("""
-    <div class="info-panel">
-        <div style="font-size: 18px; font-weight: 600; color: #1F2933; margin-bottom: 8px;">
-            CHE110 Environmental Studies
-        </div>
-        <p style="font-size: 15px; color: #4B5563; line-height: 1.6; margin-bottom: 12px;">
-            <strong style="color: #1F2933;">Project:</strong> Air Quality Awareness Dashboard<br/>
-            <strong style="color: #1F2933;">Focus:</strong> Ambient air pollution analysis & student awareness
-        </p>
-        
-        <div style="border-top: 1px solid #DCE8E6; padding-top: 10px; margin-top: 10px;">
-            <div style="font-size: 15px; font-weight: 600; color: #1F2933; margin-bottom: 4px;">Team Members</div>
-            <ul style="font-size: 14px; color: #4B5563; line-height: 1.7; padding-left: 18px; margin-bottom: 0;">
-                <li>[Student Name Placeholder] &bull; Roll: [Placeholder]</li>
-                <li>[Team Member 2 Placeholder] &bull; Roll: [Placeholder]</li>
-                <li>[Team Member 3 Placeholder] &bull; Roll: [Placeholder]</li>
-            </ul>
-        </div>
-
-        <div style="border-top: 1px solid #DCE8E6; padding-top: 10px; margin-top: 10px;">
-            <div style="font-size: 15px; font-weight: 600; color: #1F2933; margin-bottom: 2px;">Institution</div>
-            <p style="font-size: 14px; color: #4B5563; margin-bottom: 0;">
-                Department of Environmental Science & Engineering<br/>
-                [University / Institution Name Placeholder]
-            </p>
-        </div>
+st.markdown("""
+<div class="info-panel">
+    <div style="font-size: 18px; font-weight: 600; color: #1F2933; margin-bottom: 8px;">
+        Scientific References
     </div>
-    """, unsafe_allow_html=True)
+    <ol style="font-size: 14px; color: #4B5563; line-height: 1.6; padding-left: 20px; margin-bottom: 0;">
+        <li style="margin-bottom: 10px;">
+            <strong style="color: #1F2933;">Open-Meteo Air Quality API</strong><br/>
+            <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" style="color: #0F5C5C; text-decoration: underline;">open-meteo.com/en/docs/air-quality-api</a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <strong style="color: #1F2933;">Central Pollution Control Board (CPCB)</strong><br/>
+            <a href="https://cpcb.nic.in" target="_blank" style="color: #0F5C5C; text-decoration: underline;">cpcb.nic.in</a>
+        </li>
+        <li style="margin-bottom: 10px;">
+            <strong style="color: #1F2933;">World Health Organization (WHO)</strong><br/>
+            <a href="https://www.who.int" target="_blank" style="color: #0F5C5C; text-decoration: underline;">who.int</a>
+        </li>
+        <li>
+            <strong style="color: #1F2933;">US EPA Air Quality Index Standards</strong>
+        </li>
+    </ol>
+</div>
+""", unsafe_allow_html=True)
 
-with col_cred2:
-    st.markdown("""
-    <div class="info-panel">
-        <div style="font-size: 18px; font-weight: 600; color: #1F2933; margin-bottom: 8px;">
-            Scientific References
-        </div>
-        <ol style="font-size: 14px; color: #4B5563; line-height: 1.6; padding-left: 20px; margin-bottom: 0;">
-            <li style="margin-bottom: 10px;">
-                <strong style="color: #1F2933;">Open-Meteo Air Quality API</strong><br/>
-                <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank" style="color: #0F5C5C; text-decoration: underline;">open-meteo.com/en/docs/air-quality-api</a>
-            </li>
-            <li style="margin-bottom: 10px;">
-                <strong style="color: #1F2933;">Central Pollution Control Board (CPCB)</strong><br/>
-                <a href="https://cpcb.nic.in" target="_blank" style="color: #0F5C5C; text-decoration: underline;">cpcb.nic.in</a>
-            </li>
-            <li style="margin-bottom: 10px;">
-                <strong style="color: #1F2933;">World Health Organization (WHO)</strong><br/>
-                <a href="https://www.who.int" target="_blank" style="color: #0F5C5C; text-decoration: underline;">who.int</a>
-            </li>
-            <li>
-                <strong style="color: #1F2933;">US EPA Air Quality Index Standards</strong>
-            </li>
-        </ol>
-    </div>
-    """, unsafe_allow_html=True)
-
-# Required Academic Footer
+# Academic Footer
 st.markdown("""
 <div class="dashboard-footer">
-    Data source: Open-Meteo Air Quality API | CHE110 Environmental Studies
+    Data source: Open-Meteo Air Quality API &bull; Air Quality Awareness Dashboard
 </div>
 """, unsafe_allow_html=True)

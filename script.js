@@ -34,6 +34,18 @@ const CITIES = {
 const apiCache = {};
 let allCitiesData = [];
 let deckglOverlay = null;
+let currentMapStyle = 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+let isAutoOrbiting = false;
+let orbitInterval = null;
+let currentViewState = {
+    latitude: 21.0,
+    longitude: 79.2,
+    zoom: 4.85,
+    minZoom: 3.5,
+    maxZoom: 10,
+    pitch: 52,
+    bearing: -8
+};
 
 // =============================================================================
 // 2. AQI CATEGORY, COLOUR & HEALTH ADVICE FUNCTION
@@ -284,63 +296,272 @@ async function updateLiveCityUI(cityName) {
 // =============================================================================
 // 5. 3D INDIA AIR QUALITY MAP (DECK.GL)
 // =============================================================================
-function createColumnLayer() {
-    return new deck.ColumnLayer({
-        id: 'india-aqi-columns',
-        data: allCitiesData,
-        diskResolution: 24,
-        radius: 28000,
-        extruded: true,
-        pickable: true,
-        elevationScale: 1,
-        getPosition: d => [d.lon, d.lat],
-        getFillColor: d => d.rgb,
-        getElevation: d => d.elevation,
-        autoHighlight: true,
-        highlightColor: [255, 255, 255, 120]
-    });
+function getDeckLayers() {
+    const layers = [];
+    if (!window.deck || !allCitiesData || allCitiesData.length === 0) return layers;
+
+    // 1. Glowing ground aura halo rings
+    if (window.deck.ScatterplotLayer) {
+        layers.push(new deck.ScatterplotLayer({
+            id: 'india-city-halos',
+            data: allCitiesData,
+            pickable: false,
+            opacity: 0.85,
+            stroked: true,
+            filled: true,
+            radiusScale: 1,
+            radiusMinPixels: 14,
+            radiusMaxPixels: 60,
+            lineWidthMinPixels: 2,
+            getPosition: d => [d.lon, d.lat],
+            getRadius: d => 46000,
+            getFillColor: d => [...d.rgb, 38],
+            getLineColor: d => [...d.rgb, 140]
+        }));
+
+        // 2. High-contrast solid city ground anchor disc
+        layers.push(new deck.ScatterplotLayer({
+            id: 'india-city-dots',
+            data: allCitiesData,
+            pickable: false,
+            opacity: 1,
+            stroked: true,
+            filled: true,
+            radiusMinPixels: 5,
+            radiusMaxPixels: 16,
+            lineWidthMinPixels: 1.5,
+            getPosition: d => [d.lon, d.lat],
+            getRadius: d => 16000,
+            getFillColor: d => [...d.rgb, 240],
+            getLineColor: [255, 255, 255, 220]
+        }));
+    }
+
+    // 3. 3D Extruded AQI Pillar Columns with specular lighting
+    if (window.deck.ColumnLayer) {
+        layers.push(new deck.ColumnLayer({
+            id: 'india-aqi-columns',
+            data: allCitiesData,
+            diskResolution: 32,
+            radius: 24000,
+            extruded: true,
+            pickable: true,
+            elevationScale: 1,
+            getPosition: d => [d.lon, d.lat],
+            getFillColor: d => [...d.rgb, 235],
+            getElevation: d => Math.max((d.aqi || 50) * 1250, 24000),
+            autoHighlight: true,
+            highlightColor: [255, 255, 255, 180],
+            material: {
+                ambient: 0.35,
+                diffuse: 0.6,
+                shininess: 42,
+                specularColor: [255, 255, 255]
+            }
+        }));
+    }
+
+    // 4. Billboard 3D Labels floating above each column
+    if (window.deck.TextLayer) {
+        layers.push(new deck.TextLayer({
+            id: 'india-city-labels',
+            data: allCitiesData,
+            pickable: false,
+            getPosition: d => [d.lon, d.lat, Math.max((d.aqi || 50) * 1250, 24000) + 14000],
+            getText: d => `${d.city}\nAQI ${d.aqi}`,
+            getSize: 12,
+            getColor: [255, 255, 255, 240],
+            getTextAnchor: 'middle',
+            getAlignmentBaseline: 'bottom',
+            background: true,
+            getBackgroundColor: [15, 23, 42, 210],
+            backgroundPadding: [6, 4, 6, 4],
+            fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+            fontWeight: 700,
+            billboard: true,
+            sizeUnits: 'pixels',
+            sizeMinPixels: 11,
+            sizeMaxPixels: 16
+        }));
+    }
+
+    return layers;
+}
+
+function setupMapControls() {
+    if (window._mapControlsInitialized) return;
+    window._mapControlsInitialized = true;
+
+    // 1. Theme Toggle: Dark Cyber vs Daylight Topo
+    const btnTheme = document.getElementById("btnMapTheme");
+    if (btnTheme) {
+        btnTheme.addEventListener("click", () => {
+            const isDark = currentMapStyle.includes("dark-matter");
+            currentMapStyle = isDark
+                ? 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json'
+                : 'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json';
+
+            const icon = document.getElementById("mapThemeIcon");
+            const text = document.getElementById("mapThemeText");
+            if (icon) icon.textContent = isDark ? "🌙" : "☀️";
+            if (text) text.textContent = isDark ? "Dark Cyber" : "Daylight";
+
+            if (deckglOverlay) {
+                deckglOverlay.setProps({ mapStyle: currentMapStyle });
+            }
+        });
+    }
+
+    // 2. 3D Tilt vs Top-Down View
+    const btnTilt = document.getElementById("btnMapTilt");
+    if (btnTilt) {
+        btnTilt.addEventListener("click", () => {
+            const isTilted = (currentViewState.pitch || 0) > 15;
+            const newPitch = isTilted ? 0 : 52;
+            const newBearing = isTilted ? 0 : -8;
+            const tiltText = document.getElementById("mapTiltText");
+            if (tiltText) tiltText.textContent = isTilted ? "3D Tilt" : "Top-Down";
+
+            currentViewState = {
+                ...currentViewState,
+                pitch: newPitch,
+                bearing: newBearing,
+                transitionDuration: 1000,
+                transitionInterpolator: (deck && deck.FlyToInterpolator) ? new deck.FlyToInterpolator() : undefined
+            };
+            if (deckglOverlay) {
+                deckglOverlay.setProps({ initialViewState: currentViewState });
+            }
+        });
+    }
+
+    // 3. Cinematic Auto-Orbit Rotation
+    const btnOrbit = document.getElementById("btnMapOrbit");
+    if (btnOrbit) {
+        btnOrbit.addEventListener("click", () => {
+            isAutoOrbiting = !isAutoOrbiting;
+            btnOrbit.classList.toggle("active", isAutoOrbiting);
+            const icon = document.getElementById("mapOrbitIcon");
+            if (icon) icon.textContent = isAutoOrbiting ? "⏸️" : "🔄";
+
+            if (isAutoOrbiting) {
+                if (orbitInterval) clearInterval(orbitInterval);
+                orbitInterval = setInterval(() => {
+                    currentViewState = {
+                        ...currentViewState,
+                        bearing: ((currentViewState.bearing || 0) + 0.4) % 360,
+                        pitch: Math.max(currentViewState.pitch || 45, 35),
+                        transitionDuration: 0
+                    };
+                    if (deckglOverlay) {
+                        deckglOverlay.setProps({ initialViewState: currentViewState });
+                    }
+                }, 50);
+            } else {
+                if (orbitInterval) {
+                    clearInterval(orbitInterval);
+                    orbitInterval = null;
+                }
+            }
+        });
+    }
+
+    // 4. Center on India
+    const btnReset = document.getElementById("btnMapReset");
+    if (btnReset) {
+        btnReset.addEventListener("click", () => {
+            if (isAutoOrbiting) {
+                isAutoOrbiting = false;
+                if (orbitInterval) {
+                    clearInterval(orbitInterval);
+                    orbitInterval = null;
+                }
+                if (btnOrbit) btnOrbit.classList.remove("active");
+                const icon = document.getElementById("mapOrbitIcon");
+                if (icon) icon.textContent = "🔄";
+            }
+            currentViewState = {
+                latitude: 21.0,
+                longitude: 79.2,
+                zoom: 4.85,
+                minZoom: 3.5,
+                maxZoom: 10,
+                pitch: 52,
+                bearing: -8,
+                transitionDuration: 1200,
+                transitionInterpolator: (deck && deck.FlyToInterpolator) ? new deck.FlyToInterpolator() : undefined
+            };
+            const tiltText = document.getElementById("mapTiltText");
+            if (tiltText) tiltText.textContent = "Top-Down";
+
+            if (deckglOverlay) {
+                deckglOverlay.setProps({ initialViewState: currentViewState });
+            }
+        });
+    }
 }
 
 function initDeckGLMap() {
     const container = document.getElementById("deckMap");
     if (!container || !window.deck) return;
 
+    setupMapControls();
+
     try {
         if (!deckglOverlay) {
             deckglOverlay = new deck.DeckGL({
                 container: container,
-                mapStyle: 'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-                initialViewState: {
-                    latitude: 22.0,
-                    longitude: 79.0,
-                    zoom: 4.1,
-                    minZoom: 3,
-                    maxZoom: 9,
-                    pitch: 45,
-                    bearing: 0
-                },
+                mapStyle: currentMapStyle,
+                initialViewState: currentViewState,
                 controller: true,
-                layers: [createColumnLayer()],
-                getTooltip: ({object}) => object && {
+                layers: getDeckLayers(),
+                onViewStateChange: ({ viewState }) => {
+                    currentViewState = { ...currentViewState, ...viewState };
+                },
+                onClick: (info) => {
+                    if (info && info.object && info.object.city) {
+                        const citySelect = document.getElementById("citySelect");
+                        if (citySelect) {
+                            citySelect.value = info.object.city;
+                            citySelect.dispatchEvent(new Event("change"));
+                        }
+                    }
+                },
+                getTooltip: ({ object }) => object && {
                     html: `
-                        <div style="font-family:Inter,sans-serif; font-size:14px; color:#1f2937; line-height:1.4;">
-                            <strong style="font-size:15px; color:#111827;">${object.city}</strong> (${object.region})<br>
-                            Current US AQI: <strong style="color:${object.hex};">${object.aqi}</strong> (${object.category})<br>
-                            PM2.5: ${object.pm2_5} µg/m³ &bull; PM10: ${object.pm10} µg/m³
+                        <div style="font-family:Inter,system-ui,sans-serif; min-width:180px; padding:2px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:5px;">
+                                <strong style="font-size:15px; color:#f8fafc; font-weight:700;">${object.city}</strong>
+                                <span style="font-size:11px; background:rgba(255,255,255,0.12); color:#cbd5e1; padding:2px 6px; border-radius:4px;">${object.region}</span>
+                            </div>
+                            <div style="margin-bottom:6px;">
+                                <span style="font-size:12px; color:#94a3b8;">AQI: </span>
+                                <strong style="font-size:16px; color:${object.hex};">${object.aqi}</strong>
+                                <span style="font-size:12px; color:${object.hex}; margin-left:4px;">(${object.category})</span>
+                            </div>
+                            <div style="font-size:12px; color:#cbd5e1; display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-top:6px; background:rgba(255,255,255,0.06); padding:6px 8px; border-radius:4px;">
+                                <div>PM2.5: <strong style="color:#f8fafc;">${object.pm2_5}</strong></div>
+                                <div>PM10: <strong style="color:#f8fafc;">${object.pm10}</strong></div>
+                                <div>NO₂: <strong style="color:#f8fafc;">${object.no2}</strong></div>
+                                <div>SO₂: <strong style="color:#f8fafc;">${object.so2}</strong></div>
+                            </div>
+                            <div style="font-size:11px; color:#94a3b8; margin-top:6px; font-style:italic;">Click column to select & view trends</div>
                         </div>
                     `,
                     style: {
-                        backgroundColor: '#ffffff',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '6px',
-                        padding: '10px 14px',
-                        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
+                        backgroundColor: 'rgba(15, 23, 42, 0.94)',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        borderRadius: '8px',
+                        padding: '10px 12px',
+                        boxShadow: '0 12px 30px rgba(0,0,0,0.5)',
+                        color: '#f8fafc'
                     }
                 }
             });
         } else {
             deckglOverlay.setProps({
-                layers: [createColumnLayer()]
+                layers: getDeckLayers()
             });
         }
     } catch (e) {
@@ -381,9 +602,11 @@ function render2DCityComparisonChart() {
         orientation: 'h',
         x: sortedCities.map(c => c.aqi),
         y: sortedCities.map(c => c.city),
+        width: 0.45,
         marker: {
             color: sortedCities.map(c => c.hex),
-            line: { width: 1, color: '#e5e7eb' }
+            cornerradius: 8,
+            line: { width: 1, color: 'rgba(255, 255, 255, 0.7)' }
         },
         text: sortedCities.map(c => ` ${c.aqi}`),
         textposition: 'outside',
@@ -427,7 +650,7 @@ function render2DCityComparisonChart() {
     const layout = {
         title: {
             text: 'Current AQI Comparison Across Selected Indian Cities',
-            font: { family: 'Inter, sans-serif', color: '#1F2933', size: 18 }
+            font: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 18 }
         },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
@@ -435,30 +658,31 @@ function render2DCityComparisonChart() {
         xaxis: {
             title: {
                 text: 'Air Quality Index (US AQI)',
-                font: { family: 'Inter, sans-serif', color: '#4B5563', size: 15 }
+                font: { family: 'Inter, sans-serif', color: '#94A3B8', size: 15 }
             },
-            tickfont: { family: 'Inter, sans-serif', color: '#1F2933', size: 15 },
-            gridcolor: '#E5E7EB',
+            tickfont: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 15 },
+            gridcolor: 'rgba(255, 255, 255, 0.1)',
             range: [0, maxAQI * 1.14]
         },
         yaxis: {
             title: {
                 text: 'City',
-                font: { family: 'Inter, sans-serif', color: '#4B5563', size: 15 }
+                font: { family: 'Inter, sans-serif', color: '#94A3B8', size: 15 }
             },
-            tickfont: { family: 'Inter, sans-serif', color: '#1F2933', size: 15 },
+            tickfont: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 15 },
             autorange: 'reversed', // Highest AQI at the top!
-            gridcolor: '#F7F8F6'
+            gridcolor: 'rgba(255, 255, 255, 0.05)'
         },
         legend: {
             orientation: 'h',
             x: 0,
             y: -0.22,
-            font: { family: 'Inter, sans-serif', color: '#4B5563', size: 15 },
-            bgcolor: '#FFFFFF',
-            bordercolor: '#DCE8E6',
+            font: { family: 'Inter, sans-serif', color: '#94A3B8', size: 15 },
+            bgcolor: 'rgba(0,0,0,0)',
+            bordercolor: 'rgba(255, 255, 255, 0.1)',
             borderwidth: 1
         },
+        bargap: 0.45,
         height: 520
     };
 
@@ -501,11 +725,13 @@ function render7DayTrendChart(cityName, rawData) {
         type: 'scatter',
         mode: 'lines+markers',
         name: 'Daily Mean AQI',
-        line: { color: '#0F5C5C', width: 3 },
+        line: { shape: 'spline', smoothing: 1.3, color: '#E11D48', width: 3.5 },
+        fill: 'tozeroy',
+        fillcolor: 'rgba(225, 29, 72, 0.08)',
         marker: {
             size: 10,
             color: pointColors,
-            line: { color: '#FFFFFF', width: 2 }
+            line: { color: 'rgba(0,0,0,0)', width: 2 }
         },
         hovertemplate: '<b>Date:</b> %{x}<br><b>Forecast AQI:</b> %{y}<br><b>Category:</b> %{customdata}<extra></extra>'
     };
@@ -515,20 +741,20 @@ function render7DayTrendChart(cityName, rawData) {
     const layout = {
         title: {
             text: `7-Day Air Quality Trajectory for ${cityName}`,
-            font: { family: 'Inter, sans-serif', color: '#1F2933', size: 16 }
+            font: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 16 }
         },
         paper_bgcolor: 'transparent',
         plot_bgcolor: 'transparent',
         margin: { l: 50, r: 120, t: 50, b: 40 },
         xaxis: {
-            title: { text: 'Forecast Date', font: { family: 'Inter, sans-serif', color: '#4B5563', size: 15 } },
-            tickfont: { family: 'Inter, sans-serif', color: '#1F2933', size: 15 },
-            gridcolor: '#F0F2EE'
+            title: { text: 'Forecast Date', font: { family: 'Inter, sans-serif', color: '#94A3B8', size: 15 } },
+            tickfont: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 15 },
+            gridcolor: 'rgba(255, 255, 255, 0.05)'
         },
         yaxis: {
-            title: { text: 'Air Quality Index (US AQI)', font: { family: 'Inter, sans-serif', color: '#4B5563', size: 15 } },
-            tickfont: { family: 'Inter, sans-serif', color: '#1F2933', size: 15 },
-            gridcolor: '#E5E7EB',
+            title: { text: 'Air Quality Index (US AQI)', font: { family: 'Inter, sans-serif', color: '#94A3B8', size: 15 } },
+            tickfont: { family: 'Inter, sans-serif', color: '#F8FAFC', size: 15 },
+            gridcolor: 'rgba(255, 255, 255, 0.1)',
             range: [0, maxVal + 50]
         },
         shapes: [
@@ -630,7 +856,13 @@ function parseAndRenderSurvey(csvText) {
     if (countElem) countElem.textContent = `${rows.length} valid student responses`;
 
     const piiKeys = ["id", "name", "email", "phone", "contact", "student_id", "roll_no", "response_id"];
-    const questionCols = headers.filter(h => !piiKeys.includes(h.toLowerCase()));
+    const excludedQuestions = ["dashboard", "health tips", "pollutant", "concerned"];
+    const questionCols = headers.filter(h => {
+        const lower = h.toLowerCase();
+        if (piiKeys.includes(lower)) return false;
+        if (excludedQuestions.some(eq => lower.includes(eq))) return false;
+        return true;
+    });
 
     const container = document.getElementById("surveyChartsContainer");
     if (!container) return;
@@ -641,6 +873,29 @@ function parseAndRenderSurvey(csvText) {
     let dashHelpsCount = 0;
     const totalCount = rows.length;
 
+    // Calculate summary statistics across all responses
+    headers.forEach((h, colIdx) => {
+        const lower = h.toLowerCase();
+        if (lower.includes("frequently") || lower.includes("check")) {
+            rows.forEach(r => {
+                const val = (r[colIdx] || "").toLowerCase();
+                if (val === "rarely" || val === "never") rarelyNeverCount++;
+            });
+        }
+        if (lower.includes("app") || lower.includes("website")) {
+            rows.forEach(r => {
+                const val = (r[colIdx] || "").toLowerCase();
+                if (val === "yes") usedAppCount++;
+            });
+        }
+        if (lower.includes("dashboard") || lower.includes("help")) {
+            rows.forEach(r => {
+                const val = (r[colIdx] || "").toLowerCase();
+                if (val === "yes") dashHelpsCount++;
+            });
+        }
+    });
+
     questionCols.forEach((qHeader, idx) => {
         const actualIndex = headers.indexOf(qHeader);
         const freqMap = {};
@@ -650,56 +905,162 @@ function parseAndRenderSurvey(csvText) {
             if (val && val !== "") freqMap[val] = (freqMap[val] || 0) + 1;
         });
 
-        if (qHeader.toLowerCase().includes("frequently") || qHeader.toLowerCase().includes("check")) {
-            Object.keys(freqMap).forEach(k => {
-                if (k.toLowerCase() === "rarely" || k.toLowerCase() === "never") rarelyNeverCount += freqMap[k];
-            });
-        }
-        if (qHeader.toLowerCase().includes("app") || qHeader.toLowerCase().includes("website")) {
-            Object.keys(freqMap).forEach(k => {
-                if (k.toLowerCase() === "yes") usedAppCount += freqMap[k];
-            });
-        }
-        if (qHeader.toLowerCase().includes("dashboard") || qHeader.toLowerCase().includes("help")) {
-            Object.keys(freqMap).forEach(k => {
-                if (k.toLowerCase() === "yes") dashHelpsCount += freqMap[k];
-            });
-        }
+        const isFreq = qHeader.toLowerCase().includes("frequently") || qHeader.toLowerCase().includes("check");
+        const isApp = qHeader.toLowerCase().includes("app") || qHeader.toLowerCase().includes("website");
+        const isSymptom = qHeader.toLowerCase().includes("symptom");
 
+        const isFull = isSymptom; // Symptom horizontal chart spans across both columns
         const chartBox = document.createElement("div");
-        chartBox.className = "panel-box";
+        chartBox.className = `survey-chart-box ${isFull ? 'survey-chart-full' : ''}`;
         const chartId = `surveyPlot_${idx}`;
         chartBox.innerHTML = `
-            <div style="font-size: 16px; font-weight:600; color: #1F2933; margin-bottom: 8px;">${qHeader}</div>
-            <div id="${chartId}" style="width: 100%; height: 340px;"></div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px;">
+                <div>
+                    <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #F97316; margin-bottom: 3px;">STUDENT SURVEY &bull; INSIGHT #${idx + 1}</div>
+                    <div style="font-size: 16px; font-weight: 700; color: #0F172A; line-height: 1.35;">${qHeader}</div>
+                </div>
+                <span style="font-size: 12px; font-weight: 600; color: #64748B; background: #F8FAFC; border: 1px solid #E2E8F0; padding: 3px 10px; border-radius: 12px; white-space: nowrap;">N = ${totalCount}</span>
+            </div>
+            <div id="${chartId}" style="width: 100%; height: ${isFull ? '320px' : '330px'};"></div>
         `;
         container.appendChild(chartBox);
 
-        const labels = Object.keys(freqMap);
-        const values = Object.values(freqMap);
-        const sum = values.reduce((a, b) => a + b, 0);
+        let labels = Object.keys(freqMap);
+        let values = Object.values(freqMap);
+
+        if (isFreq) {
+            const order = ["Daily", "Occasionally", "Rarely", "Never"];
+            labels = order.filter(k => k in freqMap);
+            values = labels.map(k => freqMap[k]);
+        } else if (isApp) {
+            const order = ["No", "Yes"];
+            labels = order.filter(k => k in freqMap);
+            values = labels.map(k => freqMap[k]);
+        } else if (isSymptom) {
+            labels.sort((a, b) => (freqMap[b] || 0) - (freqMap[a] || 0));
+            values = labels.map(k => freqMap[k]);
+        } else {
+            labels.sort((a, b) => (freqMap[b] || 0) - (freqMap[a] || 0));
+            values = labels.map(k => freqMap[k]);
+        }
+
+        const sum = values.reduce((a, b) => a + b, 0) || 1;
         const texts = values.map(v => `${v} (${Math.round((v / sum) * 100)}%)`);
 
-        const trace = {
-            x: labels,
-            y: values,
-            type: 'bar',
-            text: texts,
-            textposition: 'outside',
-            marker: { color: '#0F5C5C' },
-            textfont: { size: 15, color: '#1F2933' }
-        };
+        // Warm sunset color palettes matching the sample aesthetic
+        const warmPalette = ['#FBBF24', '#FB923C', '#F97316', '#F43F5E', '#E11D48', '#BE123C'];
+        let barColors = [];
+        if (isFreq) {
+            barColors = ['#FBBF24', '#FB923C', '#F43F5E', '#BE123C'];
+        } else if (isApp) {
+            barColors = ['#E11D48', '#F59E0B'];
+        } else if (isSymptom) {
+            barColors = ['#E11D48', '#F43F5E', '#F97316', '#FB923C', '#FBBF24'];
+        } else {
+            barColors = labels.map((_, i) => warmPalette[i % warmPalette.length]);
+        }
 
-        const layout = {
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            margin: { l: 35, r: 20, t: 25, b: 60 },
-            font: { family: 'Inter, sans-serif', color: '#1F2933', size: 15 },
-            xaxis: { tickangle: -15, gridcolor: '#F0F2EE', tickfont: { size: 14, color: '#1F2933' } },
-            yaxis: { gridcolor: '#E5E7EB', tickfont: { size: 14, color: '#1F2933' } }
-        };
+        const traces = [];
 
-        Plotly.newPlot(chartId, [trace], layout, { responsive: true, displayModeBar: false });
+        if (isSymptom) {
+            // Horizontal bar chart with warm gradient & rounded corners
+            const hTrace = {
+                type: 'bar',
+                orientation: 'h',
+                y: labels,
+                x: values,
+                width: 0.42,
+                text: texts,
+                textposition: 'outside',
+                cliponaxis: false,
+                marker: {
+                    color: barColors,
+                    cornerradius: 8,
+                    line: { width: 1, color: 'rgba(255, 255, 255, 0.8)' }
+                },
+                textfont: { size: 14, color: '#F8FAFC', family: 'Inter, sans-serif' },
+                hoverinfo: 'x+y'
+            };
+            traces.push(hTrace);
+
+            const hLayout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                margin: { l: 230, r: 80, t: 15, b: 40 },
+                font: { family: 'Inter, sans-serif', color: '#F8FAFC' },
+                bargap: 0.52,
+                xaxis: {
+                    showgrid: true,
+                    gridcolor: '#F1F5F9',
+                    zeroline: false,
+                    tickfont: { size: 13, color: '#64748B', family: 'Inter, sans-serif' },
+                    title: { text: 'Responses', font: { size: 13, color: '#64748B', family: 'Inter, sans-serif' } }
+                },
+                yaxis: {
+                    autorange: 'reversed',
+                    showgrid: false,
+                    zeroline: false,
+                    tickfont: { size: 13.5, color: '#F8FAFC', family: 'Inter, sans-serif' }
+                }
+            };
+            Plotly.newPlot(chartId, traces, hLayout, { responsive: true, displayModeBar: false });
+        } else {
+            // Vertical bar chart with warm sunset palette & overlaid glowing spline line
+            const vBarTrace = {
+                x: labels,
+                y: values,
+                type: 'bar',
+                width: isApp ? 0.24 : (labels.length <= 3 ? 0.30 : 0.38),
+                text: texts,
+                textposition: 'outside',
+                cliponaxis: false,
+                marker: {
+                    color: barColors,
+                    cornerradius: 8,
+                    line: { width: 1, color: 'rgba(255, 255, 255, 0.8)' }
+                },
+                textfont: { size: 14, color: '#F8FAFC', family: 'Inter, sans-serif' },
+                hoverinfo: 'x+y'
+            };
+            traces.push(vBarTrace);
+
+            if (labels.length > 2) {
+                const splineTrace = {
+                    x: labels,
+                    y: values,
+                    type: 'scatter',
+                    mode: 'lines+markers',
+                    line: { shape: 'spline', smoothing: 1.25, color: '#F59E0B', width: 2.8 },
+                    marker: { size: 7, color: '#FEF08A', line: { color: '#B45309', width: 2 } },
+                    hoverinfo: 'skip',
+                    showlegend: false
+                };
+                traces.push(splineTrace);
+            }
+
+            const maxVal = Math.max(...values, 10);
+            const vLayout = {
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                margin: { l: 40, r: 25, t: 25, b: 50 },
+                font: { family: 'Inter, sans-serif', color: '#F8FAFC' },
+                bargap: isApp ? 0.65 : 0.52,
+                xaxis: {
+                    showgrid: false,
+                    zeroline: false,
+                    tickangle: 0,
+                    tickfont: { size: 13, color: '#F8FAFC', family: 'Inter, sans-serif' }
+                },
+                yaxis: {
+                    showgrid: true,
+                    gridcolor: '#F1F5F9',
+                    zeroline: false,
+                    range: [0, maxVal * 1.2],
+                    tickfont: { size: 13, color: '#64748B', family: 'Inter, sans-serif' }
+                }
+            };
+            Plotly.newPlot(chartId, traces, vLayout, { responsive: true, displayModeBar: false });
+        }
     });
 
     // Update Awareness vs Reality Stats
@@ -734,6 +1095,58 @@ function setupEventListeners() {
             const city = citySelect.value;
             delete apiCache[city];
             updateLiveCityUI(city);
+        });
+    }
+
+    const btnLocation = document.getElementById("btnLocation");
+    if (btnLocation && citySelect) {
+        btnLocation.addEventListener("click", () => {
+            if ("geolocation" in navigator) {
+                btnLocation.textContent = "📍 Locating...";
+                navigator.geolocation.getCurrentPosition(async (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    
+                    let locationName = "Your Location";
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&accept-language=en`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            if (data && data.address) {
+                                locationName = data.address.city || data.address.town || data.address.village || data.address.state_district || data.address.county || data.address.state || "Your Location";
+                                // Append a small marker to indicate it's the user's detected location
+                                locationName = locationName + " (Near You)";
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Reverse geocoding failed", e);
+                    }
+                    
+                    CITIES[locationName] = { lat: lat, lon: lon, region: "Local" };
+                    
+                    let exists = false;
+                    for (let i = 0; i < citySelect.options.length; i++) {
+                        if (citySelect.options[i].value === locationName) exists = true;
+                    }
+                    if (!exists) {
+                        const opt = document.createElement("option");
+                        opt.value = locationName;
+                        opt.textContent = locationName;
+                        citySelect.appendChild(opt);
+                    }
+                    
+                    citySelect.value = locationName;
+                    delete apiCache[locationName];
+                    updateLiveCityUI(locationName);
+                    btnLocation.textContent = "📍 Near Me";
+                }, (error) => {
+                    console.error("Geolocation error:", error);
+                    alert("Location access denied or unavailable.");
+                    btnLocation.textContent = "📍 Near Me";
+                });
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
         });
     }
 

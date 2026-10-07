@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Air Quality Awareness Dashboard | CHE110 Environmental Studies</title>
+    <title>Air Quality Awareness Dashboard</title>
     <meta name="description" content="Student environmental studies dashboard evaluating ambient air pollution, 3D geospatial distribution, and air quality awareness in India.">
     <!-- Google Font: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,7 +17,7 @@
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <!-- Three.js for Topic-Related 3D Atmospheric Scroll Background -->
     <script src="three.min.js"></script>
-    <link rel="stylesheet" href="style.css?v=glassmorphism2">
+    <link rel="stylesheet" href="style.css?v=map_v2">
 </head>
 <body>
 
@@ -27,7 +27,6 @@
     <!-- Sticky Navigation Jump Bar -->
     <nav class="top-nav-bar">
         <div class="nav-inner">
-            <a href="#top" class="nav-brand">CHE110 Environmental Studies</a>
             <div class="nav-links">
                 <a href="#section-city" class="nav-link">City AQI & Health</a>
                 <a href="#section-pollutants" class="nav-link">Pollutants</a>
@@ -36,7 +35,7 @@
                 <a href="#section-trend" class="nav-link">7-Day Trend</a>
                 <a href="#section-survey" class="nav-link">Survey Results</a>
                 <a href="#section-reality" class="nav-link">Awareness vs Reality</a>
-                <a href="#section-sources" class="nav-link">Sources & About</a>
+                <a href="#section-sources" class="nav-link">Sources & References</a>
             </div>
         </div>
     </nav>
@@ -46,7 +45,6 @@
 
         <!-- 1. Header Section -->
         <header class="dashboard-header">
-            <div class="course-tag">CHE110 Environmental Studies Project</div>
             <h1 class="main-title">Air Quality Awareness Dashboard</h1>
             <p class="sub-title">Ambient air quality monitoring and environmental awareness across India.</p>
         </header>
@@ -77,7 +75,10 @@
                         <option value="Lucknow">Lucknow</option>
                         <option value="Chandigarh">Chandigarh</option>
                     </select>
-                    <button id="btnRefresh" class="btn-primary">Refresh Data</button>
+                    <div style="display: flex; gap: 12px;">
+                        <button type="button" id="btnLocation" class="btn-secondary" title="Use My Location">📍 Near Me</button>
+                        <button id="btnRefresh" class="btn-primary">Refresh Data</button>
+                    </div>
                 </div>
                 <div class="source-note">Data source: Open-Meteo Air Quality API</div>
             </div>
@@ -108,11 +109,6 @@
                         <div class="card-heading">Educational Health Guidance</div>
                         <div class="advice-body" id="adviceText">
                             Loading educational guidance for the selected city...
-                        </div>
-                    </div>
-                    <div>
-                        <div class="outdoor-tip">
-                            <strong style="color: var(--text-primary);">Activity tip:</strong> <span id="outdoorTipText" style="color: var(--text-secondary); margin-left: 4px;">Please check back once data loads.</span>
                         </div>
                     </div>
                 </div>
@@ -169,16 +165,39 @@
 
             <div class="map-container">
                 <div id="deckMap"></div>
+
+                <!-- Floating Glassmorphic Map Toolbar -->
+                <div class="map-floating-controls">
+                    <button id="btnMapTheme" class="map-btn" type="button" title="Toggle Dark Cyber / Daylight Topo Map">
+                        <span id="mapThemeIcon">☀️</span> <span id="mapThemeText">Daylight</span>
+                    </button>
+                    <button id="btnMapTilt" class="map-btn" type="button" title="Toggle 3D Perspective / 2D Top-Down View">
+                        <span>📐</span> <span id="mapTiltText">Top-Down</span>
+                    </button>
+                    <button id="btnMapOrbit" class="map-btn" type="button" title="Toggle 3D Cinematic Rotation">
+                        <span id="mapOrbitIcon">🔄</span> <span>Auto-Orbit</span>
+                    </button>
+                    <button id="btnMapReset" class="map-btn" type="button" title="Center on India">
+                        <span>🎯</span> <span>Center India</span>
+                    </button>
+                </div>
+
+                <!-- Floating Badge: Real-Time Geospatial Visualizer -->
+                <div class="map-floating-badge">
+                    <span class="map-live-dot"></span>
+                    <span>10 Key Indian Metros &bull; 3D Geospatial AQI Pillars</span>
+                </div>
             </div>
 
             <div class="map-legend-bar">
+                <span class="legend-title" style="font-weight: 700;">3D Elevation & Color Scale (US AQI):</span>
                 <div class="legend-items">
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-good);"></span> Good (0-50)</span>
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-moderate);"></span> Moderate (51-100)</span>
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-sensitive);"></span> Sensitive (101-150)</span>
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-unhealthy);"></span> Unhealthy (151-200)</span>
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-very-unhealthy);"></span> Very Unhealthy (201-300)</span>
-                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-hazardous);"></span> Hazardous (301+)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-good); box-shadow: 0 0 8px var(--aqi-good);"></span> Good (0-50)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-moderate); box-shadow: 0 0 8px var(--aqi-moderate);"></span> Moderate (51-100)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-sensitive); box-shadow: 0 0 8px var(--aqi-sensitive);"></span> Sensitive (101-150)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-unhealthy); box-shadow: 0 0 8px var(--aqi-unhealthy);"></span> Unhealthy (151-200)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-very-unhealthy); box-shadow: 0 0 8px var(--aqi-very-unhealthy);"></span> Very Unhealthy (201-300)</span>
+                    <span class="legend-chip"><span class="chip-color" style="background-color: var(--aqi-hazardous); box-shadow: 0 0 8px var(--aqi-hazardous);"></span> Hazardous (301+)</span>
                 </div>
             </div>
 
@@ -247,7 +266,7 @@
                 <strong id="surveyTotalCount" style="font-size: 18px; color: var(--accent); font-weight: 800;">--</strong>
             </div>
 
-            <div id="surveyChartsContainer" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div id="surveyChartsContainer" class="survey-charts-grid">
                 <!-- Dynamically populated Plotly charts for each survey question -->
             </div>
         </section>
@@ -305,67 +324,39 @@
         <hr class="section-divider">
         <section class="dashboard-section" id="section-sources">
             <div class="section-header-row">
-                <h2 class="section-title">Sources and About</h2>
+                <h2 class="section-title">Sources & References</h2>
             </div>
 
-            <!-- Project Details & Citations Grid (2-Column Desktop Layout) -->
-            <div class="two-col-grid">
-                <div class="panel-box">
-                    <div class="card-heading">CHE110 Environmental Studies</div>
-                    <p style="font-size: 15px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 12px;">
-                        <strong style="color: var(--text-primary);">Project:</strong> Air Quality Awareness Dashboard<br>
-                        <strong style="color: var(--text-primary);">Focus:</strong> Ambient air pollution analysis & student awareness
-                    </p>
-
-                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
-                        <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px;">Team Members:</div>
-                        <ul style="padding-left: 18px; font-size: 14px; color: var(--text-secondary); line-height: 1.7; margin-bottom: 0;">
-                            <li>[Student Name Placeholder] &bull; Roll: [Placeholder]</li>
-                            <li>[Team Member 2 Placeholder] &bull; Roll: [Placeholder]</li>
-                            <li>[Team Member 3 Placeholder] &bull; Roll: [Placeholder]</li>
-                        </ul>
-                    </div>
-
-                    <div style="border-top: 1px solid var(--border-color); padding-top: 10px; margin-top: 10px;">
-                        <div style="font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">Institution:</div>
-                        <p style="font-size: 14px; color: var(--text-secondary); margin: 0;">
-                            Department of Environmental Science & Engineering<br>
-                            [University / Institution Name Placeholder]
-                        </p>
-                    </div>
-                </div>
-
-                <div class="panel-box">
-                    <div class="card-heading">Scientific References</div>
-                    <ol class="citations-list" style="margin-bottom: 0;">
-                        <li>
-                            <strong style="color: var(--text-primary);">Open-Meteo Air Quality API</strong><br>
-                            <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank">open-meteo.com/en/docs/air-quality-api</a>
-                        </li>
-                        <li>
-                            <strong style="color: var(--text-primary);">Central Pollution Control Board (CPCB)</strong><br>
-                            <a href="https://cpcb.nic.in" target="_blank">cpcb.nic.in</a>
-                        </li>
-                        <li>
-                            <strong style="color: var(--text-primary);">World Health Organization (WHO)</strong><br>
-                            <a href="https://www.who.int" target="_blank">who.int</a>
-                        </li>
-                        <li>
-                            <strong style="color: var(--text-primary);">US EPA Air Quality Index Standards</strong>
-                        </li>
-                    </ol>
-                </div>
+            <div class="panel-box">
+                <div class="card-heading">Scientific Data & Regulatory References</div>
+                <ol class="citations-list" style="margin-bottom: 0;">
+                    <li>
+                        <strong style="color: var(--text-primary);">Open-Meteo Air Quality API</strong><br>
+                        <a href="https://open-meteo.com/en/docs/air-quality-api" target="_blank">open-meteo.com/en/docs/air-quality-api</a>
+                    </li>
+                    <li>
+                        <strong style="color: var(--text-primary);">Central Pollution Control Board (CPCB)</strong><br>
+                        <a href="https://cpcb.nic.in" target="_blank">cpcb.nic.in</a>
+                    </li>
+                    <li>
+                        <strong style="color: var(--text-primary);">World Health Organization (WHO)</strong><br>
+                        <a href="https://www.who.int" target="_blank">who.int</a>
+                    </li>
+                    <li>
+                        <strong style="color: var(--text-primary);">US EPA Air Quality Index Standards</strong>
+                    </li>
+                </ol>
             </div>
         </section>
 
     </main>
 
-    <!-- Required Academic Footer -->
+    <!-- Footer -->
     <footer class="dashboard-footer">
-        Data source: Open-Meteo Air Quality API | CHE110 Environmental Studies
+        Data source: Open-Meteo Air Quality API &bull; Air Quality Awareness Dashboard
     </footer>
 
     <!-- Core Application Logic -->
-    <script src="script.js?v=glassmorphism2"></script>
+    <script src="script.js?v=map_v2"></script>
 </body>
 </html>
